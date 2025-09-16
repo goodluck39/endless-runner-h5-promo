@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Slither.io Clone with Coins & Ads</title>
+  <style>
+    body { margin: 0; background: #111; overflow: hidden; }
+    canvas { display: block; margin: auto; background: #222; }
+    #score {
+      position: absolute;
+      top: 10px; left: 10px;
+      color: white; font-size: 20px; font-family: Arial;
+    }
+    #banner-ad {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 60px;
+      background: #333; color: white;
+      text-align: center; line-height: 60px;
+      font-family: Arial; font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div id="score">Score: 0</div>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+  <!-- 广告横幅占位符 -->
+  <div id="banner-ad">广告位（放置 AdSense 或联盟广告）</div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let snake = [{x: 400, y: 300}];
+    let direction = {x: 1, y: 0};
+    let foods = [spawnFood()];
+    let score = 0;
+
+    // 随机生成食物（有概率生成金币）
+    function spawnFood() {
+      return {
+        x: Math.floor(Math.random() * 40) * 20,
+        y: Math.floor(Math.random() * 30) * 20,
+        type: Math.random() < 0.2 ? "coin" : "food" // 20% 概率是金币
+      };
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowUp" && direction.y === 0) direction = {x: 0, y: -1};
+      if (e.key === "ArrowDown" && direction.y === 0) direction = {x: 0, y: 1};
+      if (e.key === "ArrowLeft" && direction.x === 0) direction = {x: -1, y: 0};
+      if (e.key === "ArrowRight" && direction.x === 0) direction = {x: 1, y: 0};
+    });
+
+    function update() {
+      const head = {x: snake[0].x + direction.x * 20, y: snake[0].y + direction.y * 20};
+
+      // Game Over
+      if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height ||
+          snake.some(s => s.x === head.x && s.y === head.y)) {
+        showInterstitialAd();
+        alert("💀 Game Over! Final Score: " + score);
+        snake = [{x: 400, y: 300}];
+        direction = {x: 1, y: 0};
+        foods = [spawnFood()];
+        score = 0;
+        document.getElementById("score").textContent = "Score: " + score;
+        return;
+      }
+
+      snake.unshift(head);
+
+      let ate = false;
+      foods.forEach((food, i) => {
+        if (head.x === food.x && head.y === food.y) {
+          ate = true;
+          if (food.type === "coin") {
+            score += 5;
+          } else {
+            score += 1;
+          }
+          document.getElementById("score").textContent = "Score: " + score;
+          foods[i] = spawnFood();
+        }
+      });
+
+      if (!ate) snake.pop();
+    }
+
+    function draw() {
+      ctx.fillStyle = "#222";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw snake
+      ctx.fillStyle = "lime";
+      snake.forEach(s => {
+        ctx.fillRect(s.x, s.y, 20, 20);
+      });
+
+      // Draw foods
+      foods.forEach(food => {
+        if (food.type === "coin") {
+          ctx.fillStyle = "gold";
+          ctx.beginPath();
+          ctx.arc(food.x + 10, food.y + 10, 10, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = "red";
+          ctx.fillRect(food.x, food.y, 20, 20);
+        }
+      });
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+    }
+
+    setInterval(gameLoop, 100);
